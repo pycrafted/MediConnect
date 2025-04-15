@@ -1,0 +1,24 @@
+# Python/Django
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+*.env
+*.sqlite3
+
+# Node.js/React
+node_modules/
+build/
+.DS_Store
+
+# Orthanc
+orthanc/orthanc-db/
+
+# Windows-specific
+Thumbs.db
+Desktop.ini
+
+# Autres
+*.log
