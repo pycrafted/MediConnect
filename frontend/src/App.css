@@ -1,0 +1,21 @@
+body {
+  background-color: #f5f7fa;
+  font-family: 'Roboto', sans-serif;
+}
+
+.MuiTypography-h4 {
+  color: #1976d2 !important; /* Bleu primaire */
+}
+
+.MuiTypography-body1 {
+  color: #555 !important;
+}
+
+.MuiButton-containedPrimary {
+  background-color: #1976d2 !important;
+  color: #fff !important;
+}
+
+.MuiButton-containedPrimary:hover {
+  background-color: #1565c0 !important;
+}
