@@ -1,83 +1,202 @@
-MediConnect
-Application web médicale pour gérer les patients, les données DICOM, et intégrer télé-radiologie et IA.
-Prérequis
+# 🩺 MediConnect
 
-Python 3.10+
-Node.js 18+
-PostgreSQL
-Docker
-Git
+Application web médicale complète pour la gestion de patients, la visualisation d'images DICOM, et l'intégration de la téléradiologie et de l'intelligence artificielle.
 
-Installation
-1. Cloner le projet
-git clone <URL_DU_REPOSITOIRE>
-cd MediConnect
+---
 
-2. Configurer Orthanc
+## 👨‍💻 Développé par
+- **Abdoulaye LAH** ([GitHub](https://github.com/layelah))
 
-Naviguer dans le dossier Orthanc :cd orthanc
+Projet réalisé dans le cadre du Master 1 Génie Logiciel et Systèmes d'Information.
 
+---
 
-Créer le fichier docker-compose.yml avec le contenu suivant :services:
-  orthanc:
-    image: jodogne/orthanc
-    ports:
-      - "4242:4242"
-      - "8042:8042"
-    volumes:
-      - ./orthanc-db:/var/lib/orthanc/db
+## 📦 Prérequis
 
+🔧 Avant de commencer, installez les outils suivants :
 
-Lancer Orthanc :docker-compose up -d
+- [Python 3.10+](https://www.python.org/downloads/)
+- [Node.js 18+](https://nodejs.org/en)
+- [Docker](https://www.docker.com/products/docker-desktop/)
+- [Git](https://git-scm.com/downloads)
+- (Optionnel) [PostgreSQL local](https://www.postgresql.org/download/) si vous ne passez pas par Docker
 
+---
 
-Accéder à l’interface web :
-URL : http://localhost:8042
-Identifiants : orthanc/orthanc
+## 🛠️ Installation et Configuration Complète
 
+### 🧾 1. Cloner le projet
 
+```bash
+# Clonez le dépôt Git
+git clone https://github.com/<votre-username>/pycrafted-mediconnect.git
+cd pycrafted-mediconnect
+```
 
-3. Configurer le Frontend React
-(À compléter après configuration du frontend)
-4. Configurer le Backend Django
-(À compléter)
-5. Configurer PostgreSQL
-(À compléter)
-Structure
+### 🐘 2. Configurer PostgreSQL avec Docker
 
-backend/ : Projet Django
-frontend/ : Projet React
-orthanc/ : Configuration Orthanc
-docs/ : Documentation
-tests/ : Tests unitaires
+> ⚠️ C’est la base de données pour Django. Ne **PAS** sauter cette étape.
 
-Utilisation
+```bash
+docker run -d --name mediconnect-pg -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=mediconnect_db -p 5432:5432 postgres
+```
 
-Orthanc :
-Accéder à http://localhost:8042 pour gérer les fichiers DICOM.
-Utiliser les identifiants orthanc/orthanc.
-API REST disponible à http://localhost:8042 (ex. : GET /studies pour lister les études).
+🧪 **Tester la connexion** :
 
+```bash
+psql -h localhost -U postgres -d mediconnect_db
+```
 
-Frontend React : (À compléter)
-Backend Django : (À compléter)
+✅ Si ça fonctionne, passez à l’étape suivante.  
+❌ Si erreur : vérifier avec `docker ps` que le conteneur tourne, et que le port `5432` est libre.
 
-Commandes utiles
+### ⚙️ 3. Configurer le Backend Django
 
-Lancer Orthanc :cd orthanc
+```bash
+cd backend
+```
+
+🔹 Créer un environnement virtuel :
+
+```bash
+python -m venv venv
+```
+
+🔹 L’activer :
+
+```bash
+# Sous Windows :
+venv\Scripts\activate
+
+# Sous Linux/Mac :
+source venv/bin/activate
+```
+
+🔹 Installer les dépendances :
+
+```bash
+pip install -r requirements.txt
+```
+
+🔹 Appliquer les migrations :
+
+```bash
+python manage.py migrate
+```
+
+🔹 Lancer le serveur :
+
+```bash
+python manage.py runserver
+```
+
+🔗 Accès : [http://127.0.0.1:8000/admin](http://127.0.0.1:8000/admin)
+
+> 🛠️ Vérifiez `settings.py` si vous avez des soucis de connexion avec PostgreSQL.
+
+### 🩻 4. Configurer Orthanc (pour les fichiers DICOM)
+
+```bash
+cd orthanc
+```
+
+🔹 Lancer Orthanc avec docker-compose :
+
+```bash
 docker-compose up -d
+```
 
+🔗 Accès à l’interface : [http://localhost:8042](http://localhost:8042)  
+🔐 Identifiants : `orthanc` / `orthanc`
 
-Vérifier les logs d’Orthanc :docker logs orthanc-orthanc-1
+📋 Vérifier les logs :
 
+```bash
+docker logs orthanc-orthanc-1
+```
 
-Arrêter Orthanc :docker-compose down
+### 🌐 5. Configurer le Frontend React
 
+```bash
+cd frontend
+```
 
+🔹 Installer les dépendances :
 
-Prochaines étapes
+```bash
+npm install
+```
 
-Configurer le frontend React pour interagir avec l’API REST d’Orthanc.
-Intégrer le backend Django avec PostgreSQL.
-Rédiger la documentation complète.
+🔹 Lancer le frontend :
+
+```bash
+npm start
+```
+
+🔗 Interface web : [http://localhost:3000](http://localhost:3000)
+
+---
+
+## 🧾 Structure du Projet
+
+```bash
+pycrafted-mediconnect/
+├── backend/     ← Backend Django (API, Auth, Models)
+├── frontend/    ← Frontend React (interface utilisateur)
+├── orthanc/     ← Configuration Orthanc (docker-compose.yml)
+├── docs/        ← Documentation (à venir)
+├── tests/       ← Tests unitaires (à venir)
+```
+
+---
+
+## 🧪 Utilisation de l’Application
+
+- 📁 **Orthanc** : Gérer les fichiers DICOM via [http://localhost:8042](http://localhost:8042)
+- 🛠️ **Django** : Gérer les utilisateurs/admin via [http://127.0.0.1:8000/admin](http://127.0.0.1:8000/admin)
+- 🖥️ **React** : Interface de gestion médicale via [http://localhost:3000](http://localhost:3000)
+
+---
+
+## 📚 Commandes Utiles
+
+### 🛑 Arrêter Orthanc
+
+```bash
+cd orthanc
+docker-compose down
+```
+
+### 🔍 Logs Django
+
+```bash
+cd backend
+python manage.py runserver --verbosity 2
+```
+
+### 🧹 Nettoyer le cache npm (en cas de bug frontend)
+
+```bash
+cd frontend
+npm cache clean --force
+```
+
+---
+
+## 🔮 Prochaines Étapes
+
+- ✅ Implémenter les modèles de gestion des patients en Django
+- ✅ Créer les interfaces Patient / Médecin en React
+- 🔄 Intégrer l’API REST de Django avec Orthanc pour synchroniser les données DICOM
+- 🧠 Ajouter des fonctionnalités IA pour la lecture automatisée des images
+
+---
+
+## 🙋 Support & Questions
+
+📩 Pour toute question, ouvrez une issue sur GitHub ou contactez **[Abdoulaye LAH](https://github.com/layelah)**.
+
+---
+
+🧠 Merci d’utiliser MediConnect ! Ensemble, digitalisons la santé. 💻🧬
 
