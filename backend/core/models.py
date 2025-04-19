@@ -16,8 +16,13 @@ class Patient(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        logger.info(f'[Patient] Accès au patient : {self.user.first_name} {self.user.last_name} (ID: {self.id})')
-        return f"{self.user.first_name} {self.user.last_name}"
+        first_name = self.user.first_name or 'Unknown'
+        last_name = self.user.last_name or 'Unknown'
+        logger.info(f'[Patient] Accès au patient : {first_name} {last_name} (ID: {self.id}, User ID: {self.user.id})')
+        logger.debug(f'[Patient] Valeurs brutes - first_name: {self.user.first_name}, last_name: {self.user.last_name}')
+        if not self.user.first_name or not self.user.last_name:
+            logger.warning(f'[Patient] Noms manquants pour User ID: {self.user.id}')
+        return f"{first_name} {last_name}"
 
     class Meta:
         verbose_name = "Patient"
@@ -32,8 +37,13 @@ class Médecin(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        logger.info(f'[Médecin] Accès au médecin : {self.user.first_name} {self.user.last_name} (ID: {self.id})')
-        return f"Dr {self.user.first_name} {self.user.last_name}"
+        first_name = self.user.first_name or 'Unknown'
+        last_name = self.user.last_name or 'Unknown'
+        logger.info(f'[Médecin] Accès au médecin : {first_name} {last_name} (ID: {self.id}, User ID: {self.user.id})')
+        logger.debug(f'[Médecin] Valeurs brutes - first_name: {self.user.first_name}, last_name: {self.user.last_name}')
+        if not self.user.first_name or not self.user.last_name:
+            logger.warning(f'[Médecin] Noms manquants pour User ID: {self.user.id}')
+        return f"Dr {first_name} {last_name}"
 
     class Meta:
         verbose_name = "Médecin"
@@ -45,8 +55,13 @@ class Assistant(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        logger.info(f'[Assistant] Accès à l’assistant : {self.user.first_name} {self.user.last_name} (ID: {self.id})')
-        return f"{self.user.first_name} {self.user.last_name}"
+        first_name = self.user.first_name or 'Unknown'
+        last_name = self.user.last_name or 'Unknown'
+        logger.info(f'[Assistant] Accès à l’assistant : {first_name} {last_name} (ID: {self.id}, User ID: {self.user.id})')
+        logger.debug(f'[Assistant] Valeurs brutes - first_name: {self.user.first_name}, last_name: {self.user.last_name}')
+        if not self.user.first_name or not self.user.last_name:
+            logger.warning(f'[Assistant] Noms manquants pour User ID: {self.user.id}')
+        return f"{first_name} {last_name}"
 
     class Meta:
         verbose_name = "Assistant"
@@ -61,8 +76,10 @@ class RendezVous(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        logger.info(f'[RendezVous] Accès au RDV : {self.patient} avec {self.médecin} le {self.date} (ID: {self.id})')
-        return f"RDV {self.patient} avec {self.médecin} le {self.date}"
+        patient_str = str(self.patient)
+        médecin_str = str(self.médecin)
+        logger.info(f'[RendezVous] Accès au RDV : {patient_str} avec {médecin_str} le {self.date} (ID: {self.id})')
+        return f"RDV {patient_str} avec {médecin_str} le {self.date}"
 
     class Meta:
         verbose_name = "Rendez-vous"

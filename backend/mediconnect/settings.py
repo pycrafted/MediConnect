@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
-
+import sys
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -135,17 +135,20 @@ LOGGING = {
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
+            'stream': sys.stdout,  # Forcer la sortie UTF-8
         },
         'file': {
             'class': 'logging.FileHandler',
             'filename': 'debug.log',
+            'encoding': 'utf-8',  # Gardez-le uniquement pour FileHandler
         },
     },
     'loggers': {
         '': {
             'handlers': ['console', 'file'],
-            'level': 'INFO',
+            'level': 'DEBUG',
             'propagate': True,
         },
     },
 }
+
