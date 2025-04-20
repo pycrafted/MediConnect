@@ -52,6 +52,8 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+CSRF_TRUSTED_ORIGINS = ['http://127.0.0.1:8000']
+
 ROOT_URLCONF = 'mediconnect.urls'
 
 TEMPLATES = [
@@ -152,3 +154,13 @@ LOGGING = {
     },
 }
 
+# Ajoute en bas du fichier
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',  # Pour React
+    ],
+}
+
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',  # Par défaut
+]
