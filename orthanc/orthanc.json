@@ -1,0 +1,11 @@
+{
+  "Name": "MediConnect-Orthanc",
+  "StorageDirectory": "/var/lib/orthanc/db",
+  "RemoteAccessAllowed": true,
+  "AuthenticationEnabled": true,
+  "RegisteredUsers": {
+    "mediconnect": "securepassword123"
+  },
+  "HttpServerEnabled": true,
+  "DicomServerEnabled": true
+}

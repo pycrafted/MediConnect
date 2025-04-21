@@ -1,8 +1,17 @@
+version: '3.8'
+
 services:
   orthanc:
-    image: jodogne/orthanc
+    image: jodogne/orthanc:latest
     ports:
-      - "4242:4242"
-      - "8042:8042"
+      - "4242:4242"  # Port DICOM
+      - "8042:8042"  # Port HTTP (interface web et API REST)
     volumes:
-      - ./orthanc-db:/var/lib/orthanc/db
+      - ./orthanc.json:/etc/orthanc/orthanc.json:ro  # Configuration personnalisée
+      - orthanc-storage:/var/lib/orthanc/db  # Stockage persistant
+    environment:
+      - ORTHANC__NAME=MediConnect-Orthanc
+    restart: unless-stopped
+
+volumes:
+  orthanc-storage:
