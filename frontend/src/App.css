@@ -1,21 +1,29 @@
-body {
-  background-color: #f5f7fa;
-  font-family: 'Roboto', sans-serif;
+.App {
+  text-align: center;
 }
 
-.MuiTypography-h4 {
-  color: #1976d2 !important; /* Bleu primaire */
+.App-header {
+  background-color: #282c34;
+  padding: 20px;
+  color: white;
 }
 
-.MuiTypography-body1 {
-  color: #555 !important;
+main {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
 }
 
-.MuiButton-containedPrimary {
-  background-color: #1976d2 !important;
-  color: #fff !important;
+button {
+  margin-top: 10px;
+  padding: 10px 20px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
 }
 
-.MuiButton-containedPrimary:hover {
-  background-color: #1565c0 !important;
+button:hover {
+  background-color: #0056b3;
 }
