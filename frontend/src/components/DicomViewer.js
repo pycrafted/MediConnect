@@ -1,109 +1,198 @@
-import { useEffect, useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import cornerstone from 'cornerstone-core';
+import cornerstoneTools from 'cornerstone-tools';
 import { getDicomImages, uploadDicomFile } from '../services/api';
+import './DicomViewer.css';
+
+// Importer cornerstoneWebImageLoader si tu utilises des images PNG
+import cornerstoneWebImageLoader from 'cornerstone-web-image-loader';
 
 const DicomViewer = () => {
   const [images, setImages] = useState([]);
-  const [selectedImage, setSelectedImage] = useState(null);
+  const [file, setFile] = useState(null);
+  const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
+  const dicomViewerRef = useRef(null);
 
+  // Initialiser Cornerstone et le chargeur d'images
   useEffect(() => {
-    const token = localStorage.getItem('access_token');
-    if (!token) {
-      setError('Veuillez vous connecter pour voir vos images DICOM.');
-      return;
+    // Enregistrer le chargeur pour les images HTTP (PNG)
+    cornerstoneWebImageLoader.external.cornerstone = cornerstone;
+    cornerstone.registerImageLoader('http', (imageId) => {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.src = imageId;
+        img.onload = () => {
+          resolve(cornerstoneWebImageLoader.createImage(img, imageId));
+        };
+        img.onerror = (err) => {
+          reject(err);
+        };
+      });
+    });
+
+    // Initialiser le visualiseur
+    const element = dicomViewerRef.current;
+    if (element) {
+      cornerstone.enable(element);
     }
 
-    const fetchImages = async () => {
-      setLoading(true);
+    // Charger les images DICOM
+    const loadImages = async () => {
+      console.log('Chargement des images DICOM...');
       try {
         const response = await getDicomImages();
-        setImages(response.data || []);
+        console.log('Images DICOM reçues:', response.data);
+        setImages(response.data);
       } catch (err) {
-        console.error('Erreur DicomViewer:', err);
-        setError('Aucune image DICOM trouvée ou erreur de connexion au serveur.');
-        setImages([]); // Assurer que l'interface reste accessible
-      } finally {
-        setLoading(false);
+        console.error('Erreur chargement images:', err);
+        setError('Erreur lors du chargement des images DICOM.');
       }
     };
-    fetchImages();
+    loadImages();
+
+    // Nettoyage
+    return () => {
+      if (element) {
+        cornerstone.disable(element);
+      }
+    };
   }, []);
 
-  const handleFileUpload = async (event) => {
-    const token = localStorage.getItem('access_token');
-    if (!token) {
-      setError('Veuillez vous connecter pour uploader une image.');
-      return;
-    }
+  const handleFileChange = (e) => {
+    setFile(e.target.files[0]);
+    setError(null);
+  };
 
-    const file = event.target.files[0];
+  const handleDescriptionChange = (e) => {
+    setDescription(e.target.value);
+  };
+
+  const handleUpload = async (e) => {
+    e.preventDefault();
     if (!file) {
       setError('Veuillez sélectionner un fichier DICOM.');
       return;
     }
 
     setLoading(true);
+    setError(null);
+
     try {
-      const response = await uploadDicomFile(file);
-      const imageUrl = URL.createObjectURL(new Blob([response.data], { type: 'image/png' }));
-      setImages([...images, { id: `uploaded-${Date.now()}`, url: imageUrl }]);
-      setSelectedImage(imageUrl);
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('description', description);
+
+      const response = await uploadDicomFile(formData);
+      console.log('Réponse upload:', response.data);
+      const { instance_id } = response.data;
+
       setSuccess(true);
-      setError(null);
       setTimeout(() => setSuccess(false), 3000);
+      setFile(null);
+      setDescription('');
+
+      // Recharger les images
+      const imagesResponse = await getDicomImages();
+      setImages(imagesResponse.data);
+
+      // Afficher l’image uploadée avec Cornerstone
+      const element = dicomViewerRef.current;
+      if (element && instance_id) {
+        const imageId = `http://127.0.0.1:8000/api/orthanc/dicom-to-png/?id=${instance_id}`;
+        cornerstone.loadAndCacheImage(imageId).then((image) => {
+          cornerstone.displayImage(element, image);
+        }).catch((err) => {
+          console.error('Erreur affichage Cornerstone:', err);
+          setError('Erreur lors de l’affichage de l’image.');
+        });
+      }
     } catch (err) {
       console.error('Erreur upload:', err);
-      setError(err.response?.data?.error || 'Erreur lors de l’upload de l’image DICOM.');
+      const errorMessage = err.response?.data?.error || 'Erreur lors de l’upload du fichier DICOM.';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
+  const displayImage = (instance_id) => {
+    const element = dicomViewerRef.current;
+    if (element && instance_id) {
+      const imageId = `http://127.0.0.1:8000/api/orthanc/dicom-to-png/?id=${instance_id}`;
+      cornerstone.loadAndCacheImage(imageId).then((image) => {
+        cornerstone.displayImage(element, image);
+      }).catch((err) => {
+        console.error('Erreur affichage Cornerstone:', err);
+        setError('Erreur lors de l’affichage de l’image.');
+      });
+    }
+  };
+
   return (
-    <div className="max-w-7xl mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-6">Visualiseur DICOM</h1>
-      <div className="mb-6">
-        <label className="block text-sm font-medium mb-2">Uploader une image DICOM</label>
-        <input
-          type="file"
-          accept=".dcm"
-          onChange={handleFileUpload}
-          className="p-2 border rounded"
-          disabled={loading}
+    <div className="dicom-viewer-container">
+      <h2>Visualiseur DICOM</h2>
+
+      {/* Formulaire d'upload */}
+      <form onSubmit={handleUpload} className="upload-form">
+        <div className="form-group">
+          <label htmlFor="file">Fichier DICOM :</label>
+          <input
+            type="file"
+            id="file"
+            accept=".dcm"
+            onChange={handleFileChange}
+          />
+        </div>
+        <div className="form-group">
+          <label htmlFor="description">Description :</label>
+          <textarea
+            id="description"
+            value={description}
+            onChange={handleDescriptionChange}
+            placeholder="Entrez une description (facultatif)"
+          />
+        </div>
+        <button type="submit" disabled={loading}>
+          {loading ? 'Chargement...' : 'Uploader'}
+        </button>
+      </form>
+
+      {error && <div className="error-message">{error}</div>}
+      {success && <div className="success-message">Upload réussi !</div>}
+
+      {/* Visualiseur */}
+      <div className="viewer-section">
+        <h3>Image DICOM</h3>
+        <div
+          ref={dicomViewerRef}
+          id="dicom-viewer"
+          style={{ width: '512px', height: '512px', background: 'black' }}
         />
-        {success && <p className="mt-2 text-green-500">Image uploadée avec succès !</p>}
-        {error && <p className="mt-2 text-red-500">{error}</p>}
       </div>
-      {loading && <div className="text-center">Chargement...</div>}
-      <div className="flex gap-6">
-        <div className="w-1/4">
-          <h2 className="text-xl font-semibold mb-4">Images disponibles</h2>
-          {images.length > 0 ? (
-            <div className="grid grid-cols-1 gap-2">
-              {images.map((img) => (
-                <div
-                  key={img.id}
-                  className={`p-2 border rounded cursor-pointer ${selectedImage === img.url ? 'bg-blue-100' : ''}`}
-                  onClick={() => setSelectedImage(img.url)}
-                >
-                  Image {img.id}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p>Aucune image disponible.</p>
-          )}
-        </div>
-        <div className="w-3/4">
-          {selectedImage ? (
-            // eslint-disable-next-line jsx-a11y/img-redundant-alt
-            <img src={selectedImage} alt="DICOM" className="max-w-full h-auto" />
-          ) : (
-            <p>Sélectionnez une image pour l’afficher.</p>
-          )}
-        </div>
+
+      {/* Liste des images */}
+      <div className="images-list">
+        <h3>Mes Images DICOM</h3>
+        {images.length === 0 ? (
+          <p>Aucune image DICOM disponible.</p>
+        ) : (
+          <ul>
+            {images.map((image) => (
+              <li key={image.instance_id}>
+                <p><strong>Date :</strong> {new Date(image.uploaded_at).toLocaleString()}</p>
+                <p><strong>Patient :</strong> {image.patient_name}</p>
+                <p><strong>Étude :</strong> {image.study_date}</p>
+                <p><strong>Description :</strong> {image.description || 'Aucune'}</p>
+                <button onClick={() => displayImage(image.instance_id)}>
+                  Afficher
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </div>
   );

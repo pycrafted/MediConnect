@@ -7,5 +7,7 @@
     "mediconnect": "securepassword123"
   },
   "HttpServerEnabled": true,
-  "DicomServerEnabled": true
+  "DicomServerEnabled": true,
+  "RestApiWriteToFileSystemEnabled": true,
+  "Verbose": true
 }

@@ -108,3 +108,13 @@ class RendezVous(models.Model):
     def clean(self):
         if self.date < timezone.now():
             raise ValidationError("La date du rendez-vous ne peut pas être dans le passé.")
+
+
+class DicomImage(models.Model):
+    patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='dicom_images')
+    instance_id = models.CharField(max_length=255, unique=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    description = models.TextField(null=True, blank=True)
+
+    def __str__(self):
+        return f"Image DICOM {self.instance_id} pour {self.patient}"

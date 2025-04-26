@@ -5,32 +5,16 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="6d821101-6437-42a4-a289-0a0845301f13" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/frontend/config-overrides.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/postcss.config.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/components/layout/Sidebar.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/pages/Appointments.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/pages/Dashboard.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/pages/MedicalRecord.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/pages/Profile.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/services/api.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/tailwind.config.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/core/admin.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/core/admin.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/core/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/core/models.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/core/serializers.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/core/serializers.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/core/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/core/views.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/mediconnect/settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/mediconnect/settings.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/mediconnect/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/mediconnect/urls.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/orthanc_integration/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/orthanc_integration/urls.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/orthanc_integration/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/orthanc_integration/views.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/backend/requirements.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/package-lock.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/package-lock.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/App.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/App.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/App.test.js" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/components/DicomViewer.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/DicomViewer.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/components/Login.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/Login.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/index.css" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/index.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/logo.svg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/services/api.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/services/api.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/orthanc/orthanc.json" beforeDir="false" afterPath="$PROJECT_DIR$/orthanc/orthanc.json" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

@@ -1,7 +1,8 @@
 from django.urls import path
-from .views import OrthancPatientsView, DicomToPngView
+from .views import OrthancPatientsView, DicomToPngView, DicomImageListView
 
 urlpatterns = [
     path('patients/', OrthancPatientsView.as_view(), name='orthanc-patients'),
     path('dicom-to-png/', DicomToPngView.as_view(), name='dicom-to-png'),
+    path('images/', DicomImageListView.as_view(), name='dicom-images'),
 ]
