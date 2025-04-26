@@ -6,8 +6,6 @@
   <component name="ChangeListManager">
     <list default="true" id="6d821101-6437-42a4-a289-0a0845301f13" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/orthanc_integration/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/orthanc_integration/views.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/imageLoader.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/imageLoader.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
