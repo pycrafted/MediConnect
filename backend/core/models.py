@@ -1,152 +1,110 @@
 from django.db import models
 from django.contrib.auth.models import User
-import logging
-
-# Configurer le logger
-logger = logging.getLogger(__name__)
+from django.core.exceptions import ValidationError
+from django.utils import timezone
+import datetime
 
 class Hôpital(models.Model):
-    nom = models.CharField(max_length=100, verbose_name="Nom de l'hôpital")
-    adresse = models.CharField(max_length=255, verbose_name="Adresse")
-    ville = models.CharField(max_length=100, verbose_name="Ville")
-    code_postal = models.CharField(max_length=10, verbose_name="Code postal")
-    téléphone = models.CharField(max_length=20, verbose_name="Téléphone")
-    email = models.EmailField(verbose_name="Email")
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Date de création")
-    updated_at = models.DateTimeField(auto_now=True, verbose_name="Dernière modification")
+    nom = models.CharField(max_length=255)
+    adresse = models.TextField()
+    ville = models.CharField(max_length=100)
+    code_postal = models.CharField(max_length=10)
+    téléphone = models.CharField(max_length=20)
+    email = models.EmailField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.nom} ({self.ville})"
-
-    class Meta:
-        verbose_name = "Hôpital"
-        verbose_name_plural = "Hôpitaux"
-        ordering = ['nom']
+        return self.nom
 
 class Patient(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='patient_profile')
-    date_of_birth = models.DateField(verbose_name="Date de naissance")
-    GENDER_CHOICES = [
+    GENDER_CHOICES = (
         ('M', 'Masculin'),
         ('F', 'Féminin'),
         ('O', 'Autre'),
-    ]
-    gender = models.CharField(max_length=1, default='M', choices=GENDER_CHOICES, verbose_name="Genre")
-    address = models.CharField(max_length=255, verbose_name="Adresse")
-    city = models.CharField(max_length=100, verbose_name="Ville", default="Paris")
-    postal_code = models.CharField(max_length=10, verbose_name="Code postal", default="00000")
-    phone = models.CharField(max_length=20, verbose_name="Téléphone")
-    emergency_contact = models.CharField(max_length=100, blank=True, default="", verbose_name="Contact d'urgence")
-    emergency_phone = models.CharField(max_length=20, blank=True, default="", verbose_name="Téléphone d'urgence")
-
-    blood_type = models.CharField(
-        max_length=3,
-        verbose_name="Groupe sanguin",
-        choices=[('A+', 'A+'), ('A-', 'A-'), ('B+', 'B+'), ('B-', 'B-'), ('O+', 'O+'), ('O-', 'O-'), ('AB+', 'AB+'), ('AB-', 'AB-')],
-        blank=True
     )
-    allergies = models.TextField(blank=True, verbose_name="Allergies")
-    current_medications = models.TextField(blank=True, verbose_name="Médicaments actuels")
-    medical_history = models.TextField(blank=True, verbose_name="Antécédents médicaux")
-    insurance_number = models.CharField(max_length=50, blank=True, unique=True, verbose_name="Numéro de sécurité sociale")
+    BLOOD_TYPE_CHOICES = (
+        ('A+', 'A+'), ('A-', 'A-'),
+        ('B+', 'B+'), ('B-', 'B-'),
+        ('AB+', 'AB+'), ('AB-', 'AB-'),
+        ('O+', 'O+'), ('O-', 'O-'),
+    )
 
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Date de création")
-    updated_at = models.DateTimeField(auto_now=True, verbose_name="Dernière modification")
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    date_of_birth = models.DateField(null=True, blank=True)
+    gender = models.CharField(max_length=1, choices=GENDER_CHOICES, null=True, blank=True)
+    address = models.TextField(null=True, blank=True)
+    city = models.CharField(max_length=100, null=True, blank=True)
+    postal_code = models.CharField(max_length=10, null=True, blank=True)
+    phone = models.CharField(max_length=20, null=True, blank=True)
+    emergency_contact = models.CharField(max_length=100, null=True, blank=True)
+    emergency_phone = models.CharField(max_length=20, null=True, blank=True)
+    blood_type = models.CharField(max_length=3, choices=BLOOD_TYPE_CHOICES, null=True, blank=True)
+    allergies = models.TextField(null=True, blank=True)
+    current_medications = models.TextField(null=True, blank=True)
+    medical_history = models.TextField(null=True, blank=True)
+    insurance_number = models.CharField(max_length=50, null=True, blank=True)
+    orthanc_id = models.CharField(max_length=255, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"{self.user.first_name} {self.user.last_name}"
 
     def age(self):
-        """Calcule l'âge du patient à partir de sa date de naissance."""
-        import datetime
-        today = datetime.date.today()
-        return today.year - self.date_of_birth.year - (
-                    (today.month, today.day) < (self.date_of_birth.month, self.date_of_birth.day))
+        if self.date_of_birth:
+            today = timezone.now().date()
+            age = today.year - self.date_of_birth.year
+            if today.month < self.date_of_birth.month or (today.month == self.date_of_birth.month and today.day < self.date_of_birth.day):
+                age -= 1
+            return age
+        return None
 
     def has_complete_profile(self):
-        """Vérifie si le profil médical est complet."""
-        required_fields = [self.blood_type, self.allergies, self.medical_history]
-        return all(field for field in required_fields)
-
-    class Meta:
-        verbose_name = "Patient"
-        verbose_name_plural = "Patients"
-        ordering = ['user__last_name']
+        required_fields = ['date_of_birth', 'gender', 'phone', 'address', 'city', 'postal_code']
+        return all(getattr(self, field) for field in required_fields)
 
 class Médecin(models.Model):
-    SPECIALTY_CHOICES = [
-        ('CARDIOLOGIE', 'Cardiologie'),
-        ('DERMATOLOGIE', 'Dermatologie'),
+    SPECIALTY_CHOICES = (
         ('GENERALISTE', 'Médecine générale'),
-        ('RADIOLOGIE', 'Radiologie'),
-        ('PEDIATRIE', 'Pédiatrie'),
-    ]
+        ('CARDIOLOGUE', 'Cardiologie'),
+        ('DERMATOLOGUE', 'Dermatologie'),
+        ('PEDIATRE', 'Pédiatrie'),
+        # Ajoute d'autres spécialités si nécessaire
+    )
 
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='médecin_profile')
-    specialty = models.CharField(max_length=50, choices=SPECIALTY_CHOICES, verbose_name="Spécialité")
-    license_number = models.CharField(max_length=50, unique=True, verbose_name="Numéro de licence")
-    hôpital = models.ForeignKey(Hôpital, on_delete=models.SET_NULL, null=True, verbose_name="Hôpital d'affiliation")
-    bio = models.TextField(blank=True, verbose_name="Biographie")
-    patients = models.ManyToManyField(Patient, related_name="médecins", blank=True)
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    specialty = models.CharField(max_length=50, choices=SPECIALTY_CHOICES)
+    license_number = models.CharField(max_length=50)
+    hôpital = models.ForeignKey(Hôpital, on_delete=models.SET_NULL, null=True)
+    bio = models.TextField(null=True, blank=True)
+    patients = models.ManyToManyField(Patient, related_name='médecins')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        first_name = self.user.first_name or 'Unknown'
-        last_name = self.user.last_name or 'Unknown'
-        logger.info(f"[Médecin] Accès au médecin : {first_name} {last_name} (ID: {self.id}, User ID: {self.user.id})")
-        logger.debug(f"[Médecin] Valeurs brutes - first_name: {self.user.first_name}, last_name: {self.user.last_name}")
-        if not self.user.first_name or not self.user.last_name:
-            logger.warning(f"[Médecin] Noms manquants pour User ID: {self.user.id}")
-        return f"Dr {first_name} {last_name}"
-
-    class Meta:
-        verbose_name = "Médecin"
-        verbose_name_plural = "Médecins"
+        return f"Dr {self.user.first_name} {self.user.last_name}"
 
 class Assistant(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='assistant_profile')
-    hôpital = models.ForeignKey(Hôpital, on_delete=models.SET_NULL, null=True, verbose_name="Hôpital d'affiliation")
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    hôpital = models.ForeignKey(Hôpital, on_delete=models.SET_NULL, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        first_name = self.user.first_name or 'Unknown'
-        last_name = self.user.last_name or 'Unknown'
-        logger.info(f"[Assistant] Accès à l'assistant : {first_name} {last_name} (ID: {self.id}, User ID: {self.user.id})")
-        logger.debug(f"[Assistant] Valeurs brutes - first_name: {self.user.first_name}, last_name: {self.user.last_name}")
-        if not self.user.first_name or not self.user.last_name:
-            logger.warning(f"[Assistant] Noms manquants pour User ID: {self.user.id}")
-        return f"{first_name} {last_name}"
-
-    class Meta:
-        verbose_name = "Assistant"
-        verbose_name_plural = "Assistants"
+        return f"{self.user.first_name} {self.user.last_name}"
 
 class RendezVous(models.Model):
-    patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='rendez_vous')
-    médecin = models.ForeignKey(Médecin, on_delete=models.CASCADE, related_name='rendez_vous')
+    patient = models.ForeignKey(Patient, on_delete=models.CASCADE)
+    médecin = models.ForeignKey(Médecin, on_delete=models.CASCADE)
     date = models.DateTimeField()
-    reason = models.CharField(max_length=255)
+    reason = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        patient_str = str(self.patient)
-        médecin_str = str(self.médecin)
-        logger.info(f"[RendezVous] Accès au RDV : {patient_str} avec {médecin_str} le {self.date} (ID: {self.id})")
-        return f"RDV {patient_str} avec {médecin_str} le {self.date}"
+        return f"Rendez-vous de {self.patient} avec {self.médecin} le {self.date}"
 
-    class Meta:
-        verbose_name = "Rendez-vous"
-        verbose_name_plural = "Rendez-vous"
-        constraints = [
-            models.UniqueConstraint(
-                fields=['médecin', 'date'],
-                name='unique_rendezvous_medecin_date'
-            ),
-            models.UniqueConstraint(
-                fields=['patient', 'date'],
-                name='unique_rendezvous_patient_date'
-            )
-        ]
+    def clean(self):
+        if self.date < timezone.now():
+            raise ValidationError("La date du rendez-vous ne peut pas être dans le passé.")

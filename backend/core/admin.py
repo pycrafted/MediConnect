@@ -20,7 +20,8 @@ class PatientInline(admin.StackedInline):
     fields = (
         'date_of_birth', 'gender', 'address', 'city', 'postal_code',
         'phone', 'emergency_contact', 'emergency_phone', 'blood_type',
-        'allergies', 'current_medications', 'medical_history', 'insurance_number'
+        'allergies', 'current_medications', 'medical_history', 'insurance_number',
+        'orthanc_id'
     )
     readonly_fields = ('created_at', 'updated_at')
 
@@ -55,15 +56,15 @@ admin.site.register(User, CustomUserAdmin)
 
 @admin.register(Patient)
 class PatientAdmin(admin.ModelAdmin):
-    list_display = ('full_name', 'date_of_birth', 'gender', 'phone', 'city', 'age', 'has_complete_profile', 'created_at')
+    list_display = ('full_name', 'date_of_birth', 'gender', 'phone', 'city', 'age', 'has_complete_profile', 'orthanc_id', 'created_at')
     list_filter = ('gender', 'city', 'blood_type', 'created_at')
-    search_fields = ('user__first_name', 'user__last_name', 'phone', 'insurance_number')
+    search_fields = ('user__first_name', 'user__last_name', 'phone', 'insurance_number', 'orthanc_id')
     date_hierarchy = 'created_at'
     ordering = ('user__last_name',)
 
     fieldsets = (
         ('Informations personnelles', {
-            'fields': ('user', 'date_of_birth', 'gender', 'phone', 'address', 'city', 'postal_code')
+            'fields': ('user', 'date_of_birth', 'gender', 'phone', 'address', 'city', 'postal_code', 'orthanc_id')
         }),
         ("Contact d'urgence", {
             'fields': ('emergency_contact', 'emergency_phone')

@@ -105,12 +105,10 @@ LOGGING = {
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
-            'stream': sys.stdout,
         },
         'file': {
             'class': 'logging.FileHandler',
             'filename': 'debug.log',
-            'encoding': 'utf-8',
         },
     },
     'loggers': {
