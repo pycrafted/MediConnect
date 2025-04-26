@@ -213,6 +213,7 @@ class DicomImageListView(APIView):
                     )
                     instance_data = instance_response.json()
                     main_dicom_tags = instance_data.get('MainDicomTags', {})
+                    logger.info(f"MainDicomTags pour instance {dicom_image.instance_id}: {main_dicom_tags}")
 
                     study_date = main_dicom_tags.get('StudyDate', 'Inconnu')
                     if study_date != 'Inconnu':
@@ -221,6 +222,7 @@ class DicomImageListView(APIView):
                                 study_date, '%Y%m%d'
                             ).strftime('%d/%m/%Y')
                         except ValueError:
+                            logger.warning(f"Format StudyDate invalide pour instance {dicom_image.instance_id}: {study_date}")
                             study_date = 'Inconnu'
 
                     image_list.append({
