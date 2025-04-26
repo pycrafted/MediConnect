@@ -1,5 +1,6 @@
 import sys
 from pathlib import Path
+from datetime import timedelta  # Ajoutez cette ligne en haut
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -126,14 +127,20 @@ REST_FRAMEWORK = {
     ],
 }
 
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'USER_ID_FIELD': 'id',
+    'USER_ID_CLAIM': 'user_id',
+}
+
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
 ]
 
 # Configuration Orthanc
 ORTHANC_URL = 'http://localhost:8042'
-ORTHANC_USERNAME = 'mediconnect'
-ORTHANC_PASSWORD = 'securepassword123'
+ORTHANC_AUTH = ('mediconnect', 'securepassword123')
 
 
 # Autoriser les requêtes depuis le frontend React

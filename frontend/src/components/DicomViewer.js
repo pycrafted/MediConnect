@@ -1,11 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import cornerstone from 'cornerstone-core';
-import cornerstoneTools from 'cornerstone-tools';
 import { getDicomImages, uploadDicomFile } from '../services/api';
+import { initializeImageLoader } from '../imageLoader';
 import './DicomViewer.css';
-
-// Importer cornerstoneWebImageLoader si tu utilises des images PNG
-import cornerstoneWebImageLoader from 'cornerstone-web-image-loader';
 
 const DicomViewer = () => {
   const [images, setImages] = useState([]);
@@ -18,25 +15,17 @@ const DicomViewer = () => {
 
   // Initialiser Cornerstone et le chargeur d'images
   useEffect(() => {
-    // Enregistrer le chargeur pour les images HTTP (PNG)
-    cornerstoneWebImageLoader.external.cornerstone = cornerstone;
-    cornerstone.registerImageLoader('http', (imageId) => {
-      return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.src = imageId;
-        img.onload = () => {
-          resolve(cornerstoneWebImageLoader.createImage(img, imageId));
-        };
-        img.onerror = (err) => {
-          reject(err);
-        };
-      });
-    });
+    console.log('Initialisation de Cornerstone et du chargeur d’images');
+    // Initialiser le chargeur d'images depuis imageLoader.js
+    initializeImageLoader();
 
     // Initialiser le visualiseur
     const element = dicomViewerRef.current;
     if (element) {
+      console.log('Activation du visualiseur Cornerstone');
       cornerstone.enable(element);
+    } else {
+      console.error('Élément visualiseur non trouvé');
     }
 
     // Charger les images DICOM
@@ -56,6 +45,7 @@ const DicomViewer = () => {
     // Nettoyage
     return () => {
       if (element) {
+        console.log('Désactivation du visualiseur Cornerstone');
         cornerstone.disable(element);
       }
     };
@@ -98,14 +88,16 @@ const DicomViewer = () => {
       const imagesResponse = await getDicomImages();
       setImages(imagesResponse.data);
 
-      // Afficher l’image uploadée avec Cornerstone
+      // Afficher l’image uploadée
       const element = dicomViewerRef.current;
       if (element && instance_id) {
         const imageId = `http://127.0.0.1:8000/api/orthanc/dicom-to-png/?id=${instance_id}`;
+        console.log('Tentative d’affichage image après upload:', imageId);
         cornerstone.loadAndCacheImage(imageId).then((image) => {
+          console.log('Image affichée avec succès:', imageId);
           cornerstone.displayImage(element, image);
         }).catch((err) => {
-          console.error('Erreur affichage Cornerstone:', err);
+          console.error('Erreur affichage Cornerstone après upload:', err);
           setError('Erreur lors de l’affichage de l’image.');
         });
       }
@@ -119,16 +111,36 @@ const DicomViewer = () => {
   };
 
   const displayImage = (instance_id) => {
+    console.log('Appel de displayImage avec instance_id:', instance_id);
     const element = dicomViewerRef.current;
-    if (element && instance_id) {
-      const imageId = `http://127.0.0.1:8000/api/orthanc/dicom-to-png/?id=${instance_id}`;
-      cornerstone.loadAndCacheImage(imageId).then((image) => {
+    if (!element) {
+      console.error('Élément visualiseur non trouvé');
+      setError('Visualiseur non initialisé.');
+      return;
+    }
+    if (!instance_id) {
+      console.error('instance_id manquant');
+      setError('ID de l’image manquant.');
+      return;
+    }
+
+    const imageId = `http://127.0.0.1:8000/api/orthanc/dicom-to-png/?id=${instance_id}`;
+    console.log('Chargement image avec imageId:', imageId);
+    const promise = cornerstone.loadAndCacheImage(imageId);
+    if (!promise || typeof promise.then !== 'function') {
+      console.error('loadAndCacheImage n’a pas retourné une promesse:', promise);
+      setError('Erreur interne lors du chargement de l’image.');
+      return;
+    }
+    promise
+      .then((image) => {
+        console.log('Image chargée et affichée:', imageId);
         cornerstone.displayImage(element, image);
-      }).catch((err) => {
+      })
+      .catch((err) => {
         console.error('Erreur affichage Cornerstone:', err);
         setError('Erreur lors de l’affichage de l’image.');
       });
-    }
   };
 
   return (

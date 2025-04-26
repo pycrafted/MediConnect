@@ -1,174 +1,244 @@
 import requests
+import logging
+import time
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
+from django.conf import settings
+from django.http import HttpResponse
+from datetime import datetime
 from core.models import Patient, DicomImage
-import logging
-import time
-import json
 
 logger = logging.getLogger(__name__)
 
-ORTHANC_URL = 'http://localhost:8042'
-ORTHANC_AUTH = ('mediconnect', 'securepassword123')
+# Configuration Orthanc depuis settings
+ORTHANC_URL = settings.ORTHANC_URL
+ORTHANC_AUTH = settings.ORTHANC_AUTH
+
+def get_orthanc_response(url, method='get', auth=ORTHANC_AUTH, files=None, params=None):
+    """Utilitaire pour effectuer des requêtes HTTP vers Orthanc."""
+    try:
+        response = requests.request(
+            method=method,
+            url=url,
+            auth=auth,
+            files=files,
+            params=params,
+            timeout=10
+        )
+        response.raise_for_status()
+        return response
+    except requests.RequestException as e:
+        logger.error(f"Erreur requête Orthanc {url}: {str(e)}")
+        raise
+
+def get_instance_id_from_response(response):
+    """Extrait l'instance ID d'une réponse Orthanc ou récupère la dernière instance."""
+    try:
+        data = response.json()
+        instance_id = data.get('ID')
+        if not instance_id:
+            raise ValueError("ID d’instance non trouvé dans la réponse")
+        return instance_id
+    except ValueError as e:
+        logger.warning(f"Réponse Orthanc non-JSON ou vide: {str(e)}, récupération dernière instance")
+        time.sleep(1)  # Attendre 1 seconde pour s'assurer que l'instance est enregistrée
+        instances_response = get_orthanc_response(f'{ORTHANC_URL}/instances')
+        instances = instances_response.json()
+        if not instances:
+            raise ValueError("Aucune instance trouvée")
+        return instances[-1]
 
 class OrthancPatientsView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
+        """Récupère les patients Orthanc associés à l'utilisateur connecté."""
         try:
             user = request.user
             if not user.groups.filter(name='Patient').exists():
-                return Response({'error': 'Seuls les patients peuvent accéder à cette ressource'}, status=status.HTTP_403_FORBIDDEN)
+                return Response(
+                    {'error': 'Accès réservé aux patients'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
 
             patient = Patient.objects.get(user=user)
             if not patient.orthanc_id:
-                return Response({'error': 'Aucun ID Orthanc associé au patient'}, status=status.HTTP_404_NOT_FOUND)
+                return Response(
+                    {'error': 'Aucun ID Orthanc associé'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
 
-            response = requests.get(f'{ORTHANC_URL}/patients', auth=ORTHANC_AUTH)
-            response.raise_for_status()
-            orthanc_patients = response.json()
+            # Récupérer tous les patients Orthanc
+            patients_response = get_orthanc_response(f'{ORTHANC_URL}/patients')
+            orthanc_patients = patients_response.json()
 
+            # Filtrer pour ne retourner que le patient correspondant
             filtered_patients = []
-            for patient_id in orthanc_patients:
-                if patient_id == patient.orthanc_id:
-                    patient_details = requests.get(f'{ORTHANC_URL}/patients/{patient_id}', auth=ORTHANC_AUTH).json()
-                    filtered_patients.append({
-                        'id': patient_id,
-                        'name': patient_details.get('MainDicomTags', {}).get('PatientName', 'Inconnu'),
-                        'created_at': patient_details.get('LastUpdate', 'Inconnu')
-                    })
+            if patient.orthanc_id in orthanc_patients:
+                patient_response = get_orthanc_response(
+                    f'{ORTHANC_URL}/patients/{patient.orthanc_id}'
+                )
+                patient_details = patient_response.json()
+                filtered_patients.append({
+                    'id': patient.orthanc_id,
+                    'name': patient_details.get('MainDicomTags', {}).get(
+                        'PatientName', 'Inconnu'
+                    ),
+                    'created_at': patient_details.get('LastUpdate', 'Inconnu')
+                })
 
             return Response(filtered_patients, status=status.HTTP_200_OK)
         except Patient.DoesNotExist:
-            return Response({'error': 'Profil patient non trouvé'}, status=status.HTTP_404_NOT_FOUND)
-        except requests.RequestException as e:
-            logger.error(f"Erreur Orthanc: {str(e)}")
-            return Response({'error': 'Erreur lors de la connexion à Orthanc'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(
+                {'error': 'Profil patient non trouvé'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except requests.RequestException:
+            return Response(
+                {'error': 'Erreur de connexion à Orthanc'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 class DicomToPngView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
+        """Récupère une image PNG rendue à partir d'une instance Orthanc."""
         instance_id = request.query_params.get('id')
         if not instance_id:
-            return Response({'error': 'ID de l’instance requis'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'error': 'ID de l’instance requis'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         try:
-            response = requests.get(
+            response = get_orthanc_response(
                 f'{ORTHANC_URL}/instances/{instance_id}/rendered',
-                auth=ORTHANC_AUTH
+                params={'accept': 'image/png'}
             )
-            response.raise_for_status()
-            return Response(response.content, status=status.HTTP_200_OK, content_type='image/png')
+            # Retourner directement les données binaires avec HttpResponse
+            return HttpResponse(
+                content=response.content,
+                content_type='image/png'
+            )
         except requests.RequestException as e:
-            logger.error(f"Erreur récupération PNG: {str(e)}")
-            return Response({'error': 'Erreur lors de la récupération de l’image'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            logger.error(f"Erreur récupération PNG instance {instance_id}: {str(e)}")
+            return Response(
+                {'error': 'Erreur lors de la récupération de l’image'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
     def post(self, request):
-        file = request.FILES.get('file')
-        description = request.data.get('description', '')
-        if not file:
-            return Response({'error': 'Aucun fichier fourni'}, status=status.HTTP_400_BAD_REQUEST)
-
+        """Uploade un fichier DICOM vers Orthanc et enregistre ses métadonnées."""
         try:
             user = request.user
             patient = Patient.objects.get(user=user)
+            file = request.FILES.get('file')
+            description = request.data.get('description', '')
 
-            if not file.name.lower().endswith('.dcm'):
-                return Response({'error': 'Le fichier doit être au format DICOM (.dcm)'}, status=status.HTTP_400_BAD_REQUEST)
+            if not file:
+                return Response(
+                    {'error': 'Aucun fichier fourni'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
             # Uploader vers Orthanc
-            response = requests.post(
+            response = get_orthanc_response(
                 f'{ORTHANC_URL}/instances',
-                auth=ORTHANC_AUTH,
-                files={'file': (file.name, file, 'application/dicom')}
+                method='post',
+                files={'file': file}
             )
-            response.raise_for_status()
 
-            # Débogage : Logger la réponse brute
-            logger.debug(f"Réponse Orthanc brute: {response.text}")
+            # Récupérer l’instance_id
+            instance_id = get_instance_id_from_response(response)
+            logger.info(f"Dernière instance récupérée: {instance_id}")
 
-            # Si la réponse est vide, récupérer la dernière instance
-            instance_id = None
-            try:
-                instance_data = response.json()
-                instance_id = instance_data.get('ID')
-                if not instance_id:
-                    raise ValueError('ID de l’instance manquant dans la réponse')
-            except (ValueError, json.JSONDecodeError) as e:
-                logger.warning(f"Réponse non-JSON ou vide: {str(e)}, tentative de récupération de la dernière instance")
-                # Attendre brièvement pour s'assurer que l'instance est indexée
-                time.sleep(1)
-                # Récupérer la liste des instances
-                instances_response = requests.get(f'{ORTHANC_URL}/instances', auth=ORTHANC_AUTH)
-                instances_response.raise_for_status()
-                instances = instances_response.json()
-                if instances:
-                    instance_id = instances[0]  # Prendre la première (dernière ajoutée)
-                    logger.debug(f"Dernière instance récupérée: {instance_id}")
-                else:
-                    logger.error("Aucune instance trouvée dans Orthanc")
-                    return Response({'error': 'Aucune instance trouvée après upload'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            # Vérifier si l’instance existe déjà
+            if DicomImage.objects.filter(instance_id=instance_id).exists():
+                logger.info(f"Instance {instance_id} déjà enregistrée")
+                return Response(
+                    {'instance_id': instance_id, 'message': 'Image déjà existante'},
+                    status=status.HTTP_200_OK
+                )
 
-            # Mettre à jour orthanc_id si vide
-            if not patient.orthanc_id:
-                instance_details = requests.get(f'{ORTHANC_URL}/instances/{instance_id}', auth=ORTHANC_AUTH).json()
-                patient.orthanc_id = instance_details.get('ParentPatient')
-                patient.save()
+            # Récupérer les métadonnées
+            instance_response = get_orthanc_response(
+                f'{ORTHANC_URL}/instances/{instance_id}'
+            )
+            instance_data = instance_response.json()
 
-            # Enregistrer l’image dans DicomImage
+            # Enregistrer l’image
             DicomImage.objects.create(
                 patient=patient,
                 instance_id=instance_id,
                 description=description
             )
 
-            # Retourner l’instance_id et un message
-            return Response({
-                'instance_id': instance_id,
-                'message': 'Image DICOM uploadée avec succès'
-            }, status=status.HTTP_200_OK)
+            return Response(
+                {'instance_id': instance_id, 'message': 'Upload réussi'},
+                status=status.HTTP_200_OK
+            )
         except Patient.DoesNotExist:
-            return Response({'error': 'Profil patient non trouvé'}, status=status.HTTP_404_NOT_FOUND)
-        except requests.RequestException as e:
-            logger.error(f"Erreur upload DICOM: {str(e)}")
-            return Response({'error': 'Erreur lors du traitement du fichier DICOM'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(
+                {'error': 'Profil patient non trouvé'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except (requests.RequestException, ValueError) as e:
+            return Response(
+                {'error': f'Erreur lors de l’upload: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
         except Exception as e:
             logger.error(f"Erreur inattendue: {str(e)}")
-            return Response({'error': f'Erreur inattendue lors de l’upload: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(
+                {'error': f'Erreur inattendue: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 class DicomImageListView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
+        """Liste les images DICOM d’un patient avec leurs métadonnées."""
         try:
-            user = request.user
-            patient = Patient.objects.get(user=user)
+            patient = Patient.objects.get(user=request.user)
             dicom_images = DicomImage.objects.filter(patient=patient).order_by('-uploaded_at')
 
             image_list = []
             for dicom_image in dicom_images:
                 try:
-                    # Récupérer les détails de l’instance
-                    instance_response = requests.get(
-                        f'{ORTHANC_URL}/instances/{dicom_image.instance_id}',
-                        auth=ORTHANC_AUTH
+                    instance_response = get_orthanc_response(
+                        f'{ORTHANC_URL}/instances/{dicom_image.instance_id}'
                     )
-                    instance_response.raise_for_status()
                     instance_data = instance_response.json()
+                    main_dicom_tags = instance_data.get('MainDicomTags', {})
+
+                    study_date = main_dicom_tags.get('StudyDate', 'Inconnu')
+                    if study_date != 'Inconnu':
+                        try:
+                            study_date = datetime.strptime(
+                                study_date, '%Y%m%d'
+                            ).strftime('%d/%m/%Y')
+                        except ValueError:
+                            study_date = 'Inconnu'
 
                     image_list.append({
                         'instance_id': dicom_image.instance_id,
                         'description': dicom_image.description,
                         'uploaded_at': dicom_image.uploaded_at,
-                        'patient_name': instance_data.get('MainDicomTags', {}).get('PatientName', 'Inconnu'),
-                        'study_date': instance_data.get('MainDicomTags', {}).get('StudyDate', 'Inconnu')
+                        'patient_name': main_dicom_tags.get('PatientName', 'Inconnu'),
+                        'study_date': study_date
                     })
                 except requests.RequestException as e:
-                    logger.error(f"Erreur récupération instance {dicom_image.instance_id}: {str(e)}")
+                    logger.error(
+                        f"Erreur récupération instance {dicom_image.instance_id}: {str(e)}"
+                    )
                     continue
 
             return Response(image_list, status=status.HTTP_200_OK)
         except Patient.DoesNotExist:
-            return Response({'error': 'Profil patient non trouvé'}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {'error': 'Profil patient non trouvé'},
+                status=status.HTTP_404_NOT_FOUND
+            )
