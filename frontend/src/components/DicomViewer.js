@@ -16,10 +16,8 @@ const DicomViewer = () => {
   // Initialiser Cornerstone et le chargeur d'images
   useEffect(() => {
     console.log('Initialisation de Cornerstone et du chargeur d’images');
-    // Initialiser le chargeur d'images depuis imageLoader.js
     initializeImageLoader();
 
-    // Initialiser le visualiseur
     const element = dicomViewerRef.current;
     if (element) {
       console.log('Activation du visualiseur Cornerstone');
@@ -28,7 +26,6 @@ const DicomViewer = () => {
       console.error('Élément visualiseur non trouvé');
     }
 
-    // Charger les images DICOM
     const loadImages = async () => {
       console.log('Chargement des images DICOM...');
       try {
@@ -42,7 +39,6 @@ const DicomViewer = () => {
     };
     loadImages();
 
-    // Nettoyage
     return () => {
       if (element) {
         console.log('Désactivation du visualiseur Cornerstone');
@@ -84,14 +80,12 @@ const DicomViewer = () => {
       setFile(null);
       setDescription('');
 
-      // Recharger les images
       const imagesResponse = await getDicomImages();
       setImages(imagesResponse.data);
 
-      // Afficher l’image uploadée
       const element = dicomViewerRef.current;
       if (element && instance_id) {
-        const imageId = `http://127.0.0.1:8000/api/orthanc/dicom-to-png/?id=${instance_id}`;
+        const imageId = `http://127.0.0.1:8000/api/orthanc/images/${instance_id}/`;
         console.log('Tentative d’affichage image après upload:', imageId);
         cornerstone.loadAndCacheImage(imageId).then((image) => {
           console.log('Image affichée avec succès:', imageId);
@@ -124,15 +118,9 @@ const DicomViewer = () => {
       return;
     }
 
-    const imageId = `http://127.0.0.1:8000/api/orthanc/dicom-to-png/?id=${instance_id}`;
+    const imageId = `http://127.0.0.1:8000/api/orthanc/images/${instance_id}/`;
     console.log('Chargement image avec imageId:', imageId);
-    const promise = cornerstone.loadAndCacheImage(imageId);
-    if (!promise || typeof promise.then !== 'function') {
-      console.error('loadAndCacheImage n’a pas retourné une promesse:', promise);
-      setError('Erreur interne lors du chargement de l’image.');
-      return;
-    }
-    promise
+    cornerstone.loadAndCacheImage(imageId)
       .then((image) => {
         console.log('Image chargée et affichée:', imageId);
         cornerstone.displayImage(element, image);
@@ -147,7 +135,6 @@ const DicomViewer = () => {
     <div className="dicom-viewer-container">
       <h2>Visualiseur DICOM</h2>
 
-      {/* Formulaire d'upload */}
       <form onSubmit={handleUpload} className="upload-form">
         <div className="form-group">
           <label htmlFor="file">Fichier DICOM :</label>
@@ -175,7 +162,6 @@ const DicomViewer = () => {
       {error && <div className="error-message">{error}</div>}
       {success && <div className="success-message">Upload réussi !</div>}
 
-      {/* Visualiseur */}
       <div className="viewer-section">
         <h3>Image DICOM</h3>
         <div
@@ -185,7 +171,6 @@ const DicomViewer = () => {
         />
       </div>
 
-      {/* Liste des images */}
       <div className="images-list">
         <h3>Mes Images DICOM</h3>
         {images.length === 0 ? (

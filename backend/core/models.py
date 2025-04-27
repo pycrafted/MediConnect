@@ -115,6 +115,7 @@ class DicomImage(models.Model):
     instance_id = models.CharField(max_length=255, unique=True)
     uploaded_at = models.DateTimeField(auto_now_add=True)
     description = models.TextField(null=True, blank=True)
+    image = models.ImageField(upload_to='dicom_images/', null=True, blank=True)  # Nouveau champ
 
     def __str__(self):
         return f"Image DICOM {self.instance_id} pour {self.patient}"

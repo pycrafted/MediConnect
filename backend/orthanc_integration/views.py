@@ -8,6 +8,8 @@ from django.conf import settings
 from django.http import HttpResponse
 from datetime import datetime
 from core.models import Patient, DicomImage
+from django.core.files.base import ContentFile
+from django.http import FileResponse
 
 logger = logging.getLogger(__name__)
 
@@ -100,37 +102,11 @@ class OrthancPatientsView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
+
 class DicomToPngView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
-    def get(self, request):
-        """Récupère une image PNG rendue à partir d'une instance Orthanc."""
-        instance_id = request.query_params.get('id')
-        if not instance_id:
-            return Response(
-                {'error': 'ID de l’instance requis'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        try:
-            response = get_orthanc_response(
-                f'{ORTHANC_URL}/instances/{instance_id}/rendered',
-                params={'accept': 'image/png'}
-            )
-            # Retourner directement les données binaires avec HttpResponse
-            return HttpResponse(
-                content=response.content,
-                content_type='image/png'
-            )
-        except requests.RequestException as e:
-            logger.error(f"Erreur récupération PNG instance {instance_id}: {str(e)}")
-            return Response(
-                {'error': 'Erreur lors de la récupération de l’image'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
     def post(self, request):
-        """Uploade un fichier DICOM vers Orthanc et enregistre ses métadonnées."""
         try:
             user = request.user
             patient = Patient.objects.get(user=user)
@@ -162,17 +138,19 @@ class DicomToPngView(APIView):
                     status=status.HTTP_200_OK
                 )
 
-            # Récupérer les métadonnées
-            instance_response = get_orthanc_response(
-                f'{ORTHANC_URL}/instances/{instance_id}'
+            # Récupérer l’image PNG rendue depuis Orthanc
+            png_response = get_orthanc_response(
+                f'{ORTHANC_URL}/instances/{instance_id}/rendered',
+                params={'accept': 'image/png'}
             )
-            instance_data = instance_response.json()
+            png_data = png_response.content
 
-            # Enregistrer l’image
-            DicomImage.objects.create(
+            # Enregistrer dans PostgreSQL
+            dicom_image = DicomImage.objects.create(
                 patient=patient,
                 instance_id=instance_id,
-                description=description
+                description=description,
+                image=ContentFile(png_data, name=f"{instance_id}.png")
             )
 
             return Response(
@@ -189,10 +167,29 @@ class DicomToPngView(APIView):
                 {'error': f'Erreur lors de l’upload: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-        except Exception as e:
-            logger.error(f"Erreur inattendue: {str(e)}")
+
+    def get(self, request):
+        """Récupère une image PNG rendue à partir d'une instance Orthanc."""
+        instance_id = request.query_params.get('id')
+        if not instance_id:
             return Response(
-                {'error': f'Erreur inattendue: {str(e)}'},
+                {'error': 'ID de l’instance requis'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            response = get_orthanc_response(
+                f'{ORTHANC_URL}/instances/{instance_id}/rendered',
+                params={'accept': 'image/png'}
+            )
+            return HttpResponse(
+                content=response.content,
+                content_type='image/png'
+            )
+        except requests.RequestException as e:
+            logger.error(f"Erreur récupération PNG instance {instance_id}: {str(e)}")
+            return Response(
+                {'error': 'Erreur lors de la récupération de l’image'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
@@ -242,5 +239,23 @@ class DicomImageListView(APIView):
         except Patient.DoesNotExist:
             return Response(
                 {'error': 'Profil patient non trouvé'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+
+
+class DicomImageView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, instance_id):
+        try:
+            dicom_image = DicomImage.objects.get(
+                instance_id=instance_id,
+                patient__user=request.user
+            )
+            return FileResponse(dicom_image.image, content_type='image/png')
+        except DicomImage.DoesNotExist:
+            return Response(
+                {'error': 'Image non trouvée'},
                 status=status.HTTP_404_NOT_FOUND
             )
