@@ -1,7 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import cornerstone from 'cornerstone-core';
+import React, { useState, useEffect } from 'react';
 import { getDicomImages, uploadDicomFile } from '../services/api';
-import { initializeImageLoader } from '../imageLoader';
 import './DicomViewer.css';
 
 const DicomViewer = () => {
@@ -11,23 +9,12 @@ const DicomViewer = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
-  const dicomViewerRef = useRef(null);
+  const [selectedImageUrl, setSelectedImageUrl] = useState(null);
 
-  // Initialiser Cornerstone et le chargeur d'images
+  // Charger les images DICOM au montage
   useEffect(() => {
-    console.log('Initialisation de Cornerstone et du chargeur d’images');
-    initializeImageLoader();
-
-    const element = dicomViewerRef.current;
-    if (element) {
-      console.log('Activation du visualiseur Cornerstone');
-      cornerstone.enable(element);
-    } else {
-      console.error('Élément visualiseur non trouvé');
-    }
-
+    console.log('Chargement des images DICOM...');
     const loadImages = async () => {
-      console.log('Chargement des images DICOM...');
       try {
         const response = await getDicomImages();
         console.log('Images DICOM reçues:', response.data);
@@ -38,13 +25,6 @@ const DicomViewer = () => {
       }
     };
     loadImages();
-
-    return () => {
-      if (element) {
-        console.log('Désactivation du visualiseur Cornerstone');
-        cornerstone.disable(element);
-      }
-    };
   }, []);
 
   const handleFileChange = (e) => {
@@ -80,21 +60,12 @@ const DicomViewer = () => {
       setFile(null);
       setDescription('');
 
+      // Recharger la liste des images
       const imagesResponse = await getDicomImages();
       setImages(imagesResponse.data);
 
-      const element = dicomViewerRef.current;
-      if (element && instance_id) {
-        const imageId = `http://127.0.0.1:8000/api/orthanc/images/${instance_id}/`;
-        console.log('Tentative d’affichage image après upload:', imageId);
-        cornerstone.loadAndCacheImage(imageId).then((image) => {
-          console.log('Image affichée avec succès:', imageId);
-          cornerstone.displayImage(element, image);
-        }).catch((err) => {
-          console.error('Erreur affichage Cornerstone après upload:', err);
-          setError('Erreur lors de l’affichage de l’image.');
-        });
-      }
+      // Afficher l'image immédiatement après l'upload
+      setSelectedImageUrl(`http://127.0.0.1:8000/api/orthanc/images/${instance_id}/`);
     } catch (err) {
       console.error('Erreur upload:', err);
       const errorMessage = err.response?.data?.error || 'Erreur lors de l’upload du fichier DICOM.';
@@ -105,30 +76,16 @@ const DicomViewer = () => {
   };
 
   const displayImage = (instance_id) => {
-    console.log('Appel de displayImage avec instance_id:', instance_id);
-    const element = dicomViewerRef.current;
-    if (!element) {
-      console.error('Élément visualiseur non trouvé');
-      setError('Visualiseur non initialisé.');
-      return;
-    }
+    console.log('Affichage image avec instance_id:', instance_id);
     if (!instance_id) {
       console.error('instance_id manquant');
       setError('ID de l’image manquant.');
       return;
     }
 
-    const imageId = `http://127.0.0.1:8000/api/orthanc/images/${instance_id}/`;
-    console.log('Chargement image avec imageId:', imageId);
-    cornerstone.loadAndCacheImage(imageId)
-      .then((image) => {
-        console.log('Image chargée et affichée:', imageId);
-        cornerstone.displayImage(element, image);
-      })
-      .catch((err) => {
-        console.error('Erreur affichage Cornerstone:', err);
-        setError('Erreur lors de l’affichage de l’image.');
-      });
+    // Définir l'URL de l'image à afficher
+    const imageUrl = `http://127.0.0.1:8000/api/orthanc/images/${instance_id}/`;
+    setSelectedImageUrl(imageUrl);
   };
 
   return (
@@ -164,11 +121,28 @@ const DicomViewer = () => {
 
       <div className="viewer-section">
         <h3>Image DICOM</h3>
-        <div
-          ref={dicomViewerRef}
-          id="dicom-viewer"
-          style={{ width: '512px', height: '512px', background: 'black' }}
-        />
+        {selectedImageUrl ? (
+          <img
+            src={selectedImageUrl}
+            alt="DICOM"
+            style={{ maxWidth: '512px', maxHeight: '512px', background: 'black' }}
+            onError={() => setError('Erreur lors du chargement de l’image.')}
+          />
+        ) : (
+          <div
+            style={{
+              width: '512px',
+              height: '512px',
+              background: 'black',
+              color: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            Aucune image sélectionnée
+          </div>
+        )}
       </div>
 
       <div className="images-list">

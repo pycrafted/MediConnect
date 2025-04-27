@@ -6,13 +6,15 @@
   <component name="ChangeListManager">
     <list default="true" id="6d821101-6437-42a4-a289-0a0845301f13" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/core/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/core/models.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/mediconnect/settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/mediconnect/settings.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/mediconnect/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/mediconnect/urls.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/core/serializers.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/core/serializers.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/orthanc_integration/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/orthanc_integration/urls.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/orthanc_integration/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/orthanc_integration/views.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/DicomViewer.css" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/DicomViewer.css" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/components/DicomViewer.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/DicomViewer.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/imageLoader.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/imageLoader.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/imageLoader.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/services/api.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/services/api.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

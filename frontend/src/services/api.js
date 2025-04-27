@@ -37,7 +37,10 @@ api.interceptors.response.use(
         console.error('Échec du rafraîchissement du token:', refreshError);
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
-        window.location.href = '/login';
+        // Ne rediriger que si l'utilisateur est sur une page nécessitant une authentification
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
         return Promise.reject(refreshError);
       }
     }
@@ -80,6 +83,5 @@ export const getDicomImages = () => {
 export const uploadDicomFile = (formData) => {
   return api.post('orthanc/dicom-to-png/', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
-    responseType: 'arraybuffer',
   });
 };

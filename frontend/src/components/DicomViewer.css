@@ -8,7 +8,8 @@
   display: flex;
   flex-direction: column;
   gap: 15px;
-  margin-bottom: 20px;
+  margin-bottom: 30px;
+  max-width: 500px;
 }
 
 .form-group {
@@ -28,7 +29,12 @@
   border-radius: 4px;
 }
 
-button {
+.form-group textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.upload-form button {
   padding: 10px;
   background-color: #007bff;
   color: white;
@@ -37,7 +43,7 @@ button {
   cursor: pointer;
 }
 
-button:disabled {
+.upload-form button:disabled {
   background-color: #6c757d;
   cursor: not-allowed;
 }
@@ -56,8 +62,14 @@ button:disabled {
   margin: 20px 0;
 }
 
+.viewer-section img {
+  display: block;
+  margin: 0 auto;
+  border: 1px solid #ccc;
+}
+
 .images-list {
-  margin-top: 20px;
+  margin-top: 30px;
 }
 
 .images-list ul {
@@ -68,10 +80,23 @@ button:disabled {
 .images-list li {
   border: 1px solid #ccc;
   padding: 15px;
-  margin-bottom: 10px;
+  margin-bottom: 15px;
   border-radius: 4px;
 }
 
-.images-list button {
-  margin-top: 10px;
+.images-list li p {
+  margin: 5px 0;
+}
+
+.images-list li button {
+  padding: 8px 15px;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.images-list li button:hover {
+  background-color: #218838;
 }

@@ -4,6 +4,6 @@ from .views import OrthancPatientsView, DicomToPngView, DicomImageListView, Dico
 urlpatterns = [
     path('patients/', OrthancPatientsView.as_view(), name='orthanc-patients'),
     path('dicom-to-png/', DicomToPngView.as_view(), name='dicom-to-png'),
-    path('images/', DicomImageListView.as_view(), name='dicom-images'),
+    path('images/', DicomImageListView.as_view(), name='dicom-image-list'),
     path('images/<str:instance_id>/', DicomImageView.as_view(), name='dicom-image'),
 ]

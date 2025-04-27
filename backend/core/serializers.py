@@ -1,11 +1,19 @@
 from rest_framework import serializers
-from .models import Patient, Médecin, RendezVous
+from .models import Patient, Médecin, RendezVous, DicomImage
 from django.contrib.auth.models import User
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'username', 'first_name', 'last_name', 'email']
+
+class DicomImageSerializer(serializers.ModelSerializer):
+    patient = serializers.StringRelatedField(read_only=True)
+    uploaded_at = serializers.DateTimeField(read_only=True)
+
+    class Meta:
+        model = DicomImage
+        fields = ['instance_id', 'patient', 'description', 'uploaded_at', 'image']
 
 class PatientSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)

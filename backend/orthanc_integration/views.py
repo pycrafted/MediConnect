@@ -5,11 +5,12 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
 from django.conf import settings
-from django.http import HttpResponse
+from django.http import HttpResponse, FileResponse
 from datetime import datetime
 from core.models import Patient, DicomImage
+from core.serializers import DicomImageSerializer
 from django.core.files.base import ContentFile
-from django.http import FileResponse
+from rest_framework.parsers import MultiPartParser
 
 logger = logging.getLogger(__name__)
 
@@ -102,9 +103,48 @@ class OrthancPatientsView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
+class DicomImageView(APIView):
+    def get(self, request, instance_id=None):
+        if instance_id:
+            try:
+                dicom_image = DicomImage.objects.get(instance_id=instance_id)
+                # Vérifier si l'utilisateur a accès à cette image
+                if request.user.is_authenticated:
+                    patient = Patient.objects.get(user=request.user)
+                    if dicom_image.patient != patient:
+                        return Response(
+                            {'error': 'Accès non autorisé à cette image'},
+                            status=status.HTTP_403_FORBIDDEN
+                        )
+                # Si non authentifié, permettre l'accès (pour la balise <img>)
+                return FileResponse(dicom_image.image, content_type='image/png')
+            except DicomImage.DoesNotExist:
+                return Response({'error': 'Image non trouvée'}, status=status.HTTP_404_NOT_FOUND)
+            except Patient.DoesNotExist:
+                return Response(
+                    {'error': 'Profil patient non trouvé'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+        else:
+            if not request.user.is_authenticated:
+                return Response(
+                    {'error': 'Authentification requise pour lister les images'},
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
+            try:
+                patient = Patient.objects.get(user=request.user)
+                dicom_images = DicomImage.objects.filter(patient=patient)
+                serializer = DicomImageSerializer(dicom_images, many=True)
+                return Response(serializer.data)
+            except Patient.DoesNotExist:
+                return Response(
+                    {'error': 'Profil patient non trouvé'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
 
 class DicomToPngView(APIView):
     permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser]
 
     def post(self, request):
         try:
@@ -153,6 +193,15 @@ class DicomToPngView(APIView):
                 image=ContentFile(png_data, name=f"{instance_id}.png")
             )
 
+            # Récupérer les métadonnées Orthanc
+            instance_response = get_orthanc_response(f'{ORTHANC_URL}/instances/{instance_id}')
+            if instance_response.status_code == 200:
+                instance_data = instance_response.json()
+                main_dicom_tags = instance_data.get('MainDicomTags', {})
+                dicom_image.patient_name = main_dicom_tags.get('PatientName', 'Inconnu')
+                dicom_image.study_date = main_dicom_tags.get('StudyDate', 'Inconnu')
+                dicom_image.save()
+
             return Response(
                 {'instance_id': instance_id, 'message': 'Upload réussi'},
                 status=status.HTTP_200_OK
@@ -165,31 +214,6 @@ class DicomToPngView(APIView):
         except (requests.RequestException, ValueError) as e:
             return Response(
                 {'error': f'Erreur lors de l’upload: {str(e)}'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
-    def get(self, request):
-        """Récupère une image PNG rendue à partir d'une instance Orthanc."""
-        instance_id = request.query_params.get('id')
-        if not instance_id:
-            return Response(
-                {'error': 'ID de l’instance requis'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        try:
-            response = get_orthanc_response(
-                f'{ORTHANC_URL}/instances/{instance_id}/rendered',
-                params={'accept': 'image/png'}
-            )
-            return HttpResponse(
-                content=response.content,
-                content_type='image/png'
-            )
-        except requests.RequestException as e:
-            logger.error(f"Erreur récupération PNG instance {instance_id}: {str(e)}")
-            return Response(
-                {'error': 'Erreur lors de la récupération de l’image'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
@@ -224,7 +248,7 @@ class DicomImageListView(APIView):
 
                     image_list.append({
                         'instance_id': dicom_image.instance_id,
-                        'description': dicom_image.description,
+                        'description': dicom_image.description or 'Aucune',
                         'uploaded_at': dicom_image.uploaded_at,
                         'patient_name': main_dicom_tags.get('PatientName', 'Inconnu'),
                         'study_date': study_date
@@ -239,23 +263,5 @@ class DicomImageListView(APIView):
         except Patient.DoesNotExist:
             return Response(
                 {'error': 'Profil patient non trouvé'},
-                status=status.HTTP_404_NOT_FOUND
-            )
-
-
-
-class DicomImageView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get(self, request, instance_id):
-        try:
-            dicom_image = DicomImage.objects.get(
-                instance_id=instance_id,
-                patient__user=request.user
-            )
-            return FileResponse(dicom_image.image, content_type='image/png')
-        except DicomImage.DoesNotExist:
-            return Response(
-                {'error': 'Image non trouvée'},
                 status=status.HTTP_404_NOT_FOUND
             )
